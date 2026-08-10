@@ -15,6 +15,20 @@ Replace `hieunle/spec-from-code-marketplace` with wherever this repo actually li
 (`owner/repo` on GitHub, or a full git URL). After installing, restart Claude Code or
 run `/plugin` to confirm the `spec-from-code` skill is listed.
 
+## Requirements
+
+The skill is designed to run on a fresh checkout with almost nothing extra:
+
+- **python3** (3.6+, standard library only — no `pip install`) for the two bundled scripts.
+- **Run from the root of the repository you are reviewing.** The skill's paths are
+  relative to that root; call the bundled scripts by their full path.
+- **Optional:** the [`understand-anything`](https://github.com/Egonex-AI/Understand-Anything)
+  plugin. If present it makes codebase graphs and the analysis subagent richer, but the
+  skill works fully without it — it falls back to grep and the built-in `general-purpose`
+  agent. Not a prerequisite.
+- Reading a vendor spec PDF uses Claude's built-in `Read` tool; `pdftotext` is a faster
+  option for very large PDFs if installed, but not required.
+
 ## What the skill does
 
 Ask Claude to "review feature X" (or run `/spec-from-code`) inside a WorldTracer-style

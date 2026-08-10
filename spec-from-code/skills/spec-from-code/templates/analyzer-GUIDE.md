@@ -43,7 +43,7 @@ Where the code **contradicts** the spec, say so and mark `kind:"defect"`.
 
 ## Reading strategy
 Small files: read fully. 10k–25k-line files: grep for anchors first, read windows,
-and note in the summary that coverage was targeted. `extract-structure.mjs` works for
+and note in the summary that coverage was targeted. `extract-structure.mjs` (only if the optional `understand-anything` plugin is installed) works for
 Java but NOT for `.PSK/.PBK` (no grammar) — use the signatures index / grep there.
 
 Resolve `<bean:message key="label.X"/>` against `ApplicationResources.properties` so

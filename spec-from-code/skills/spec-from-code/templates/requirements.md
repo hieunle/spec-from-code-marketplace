@@ -4,6 +4,12 @@
 **Purpose:** a behaviour-complete spec of the existing feature, every claim traceable
 to file:line, so a replacement can be built and validated without reading the source.
 
+> **Shape check first.** This template assumes ONE capability (§7 gathers all
+> requirements as the last section). If the feature is a cluster of sub-capabilities
+> (module + engine + reporting…), don't append §8, §9… — either split into separate
+> specs or nest them as `8.1`, `8.2` under one umbrella and rename §7. See the skill's
+> "compound feature" note. Decide with the section owner before writing.
+
 ## 1. Sources
 | # | Source | Provides | Confidence |
 |---|---|---|---|
