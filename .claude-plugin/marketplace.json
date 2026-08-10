@@ -1,0 +1,17 @@
+{
+  "name": "kms-spec-tools",
+  "metadata": {
+    "description": "Tools for reviewing and writing feature specifications from source code (SITA WorldTracer and similar legacy Java/PL-SQL systems)"
+  },
+  "owner": {
+    "name": "Hieu Le",
+    "email": "hieunle@kms-technology.com"
+  },
+  "plugins": [
+    {
+      "name": "spec-from-code",
+      "source": "./spec-from-code",
+      "description": "Turn what the code actually does into a code-verified spec: locate a feature across every tier, analyse it, reconcile against the existing spec, and produce a requirements draft, a Google-Docs change request, and a handover report."
+    }
+  ]
+}

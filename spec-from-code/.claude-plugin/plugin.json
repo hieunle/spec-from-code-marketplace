@@ -1,0 +1,16 @@
+{
+  "name": "spec-from-code",
+  "description": "Review, write, or extend a feature specification from source code — every claim traceable to file:line, contradictions against the existing spec flagged, issues routed to owners. Distilled from a full pass over the WorldTracer Claims feature.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Hieu Le",
+    "email": "hieunle@kms-technology.com"
+  },
+  "keywords": [
+    "specification",
+    "requirements",
+    "legacy",
+    "reverse-engineering",
+    "code-review"
+  ]
+}
