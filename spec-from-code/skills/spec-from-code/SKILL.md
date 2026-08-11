@@ -1,5 +1,6 @@
 ---
 name: spec-from-code
+version: 2.0.0
 description: Reverse-engineer a trustworthy feature specification from source code — locate a feature across every tier (UI/service/DAO/DB), verify what the code ACTUALLY does against the existing spec, and produce a code-verified requirements draft, a Google-Docs change request, and a handover report, every claim traced to file:line. Use this whenever someone needs to review, write, verify, or extend a feature spec against a real codebase, or asks "does the code match the spec / what does X actually do" — even if they never say the word "skill". Tuned for legacy Java/PL-SQL systems (SITA WorldTracer) but the method generalises to any codebase. Triggers: "review feature X", "spec for X", "verify the X section", "does the code agree with the spec", "document X from the code".
 ---
 
@@ -12,6 +13,21 @@ and issues routed to whoever must resolve them.
 This skill was distilled from a full pass over the **Claims** feature (PL/SQL + Java
 service/DAO/validator + 151 JSP + DDL + the 300-page vendor spec). Reuse it for the
 remaining features.
+
+## Invocation modes
+
+The argument decides the flow — pick the narrowest mode that fits:
+
+| Invocation | Flow |
+|---|---|
+| `new <feature>` | Full pipeline, phases 1–9 |
+| `review <spec.md>` | Rewrite an existing section — recipe 5b |
+| `verify <spec.md> [area]` | Verification only: audit every ✅ and S1-only claim, report verdicts, change nothing |
+| `feedback <spec.md> + comments/screenshots` | Per-claim verdicts vs code, then sweep-patch the whole document (5b step 7) |
+| `publish <spec.md>` | INTEGRATE only: `scripts/build_paste_html.py` → paste-ready HTML + instructions |
+
+No diff/PR mode: the reviewed repo is a fixed snapshot — the code does not change
+under the spec.
 
 ## Prerequisites (what a fresh checkout needs)
 
@@ -52,6 +68,45 @@ Corollary — each tier knows something no other tier does:
 Screen ≠ storage ≠ rule. Skipping a tier means getting that tier's facts wrong.
 (We once "corrected" a screen from DUS 3 to DUS 5 by reasoning from the Java storage
 group — reading the JSP proved DUS 3 was right. Do not conclude past your evidence.)
+
+## Source hierarchy — the contract every claim must satisfy
+
+Code (S2) and the production DDL (S3) are **authoritative**. The vendor PDF (S1) serves
+**terminology and divergence-baseline only** — it never proves behaviour. The owner
+confirmed this ordering explicitly; treat it as standing policy.
+
+Every Requirement and Scenario is one of exactly three things:
+
+| Label | Meaning | Earns |
+|---|---|---|
+| ✅ | verified in code/DDL, `file:line` recorded | a Requirement/Scenario |
+| **Divergence vs S1** | code does X, S1 says Y — both cited | a Requirement stating X, with the S1 position noted |
+| *"S1-stated, no code located"* | only the PDF says it; implementation not found | a ⚠️ note — **never** a ✅, never a bare Requirement |
+
+**A Requirement without a Scenario is the tell that it was doc-sourced.** Every
+Requirement carries at least one WHEN/THEN Scenario derived from what the code does;
+if you cannot write one, you have not read the code path yet — go read it (fan out a
+verify subagent per area rather than transcribing the PDF).
+
+When we finally code-verified a section drafted from S1, the PDF was wrong in seven
+places at once (token length ≥4 not ≥3; country equality exact-only, no equivalence
+table; a gate commented out by a defect fix; a refusal removed; a look-back not
+enforced; report column offsets; "mandatory" params no longer checked). Assume the
+same rate everywhere: **transcribing S1 is drafting defects.**
+
+## Behaviour that lives in configuration, not code
+
+When S1 (or the current spec) states an absolute — "CRT-only", "generated on the 2nd",
+"these 57 words", "maximum 999", "worth 10 points" — **grep for a config table before
+writing it as code behaviour.** In this system the pattern recurred five times in one
+section: channel access = `WTR_TRANSACTION.VALID_CRT/VALID_TTY` flags (generic gate,
+error 531); error wording = `WTR_ERROR_CODE`; excluded match words =
+`WTR_MATCHING_EXCLUDED_STR`; report generation day = `WTR_REPORT_PARAMETER.MONTHLY_DAY`;
+scoring weights = `WTR_MATCHING_POINT`.
+
+Spec wording for these: **"the mechanism is code ✅; the values are a production
+export"** — and the export joins the requirements baseline. A replacement must preserve
+the *table*, not hard-code today's values.
 
 ## The knowledge graph — helper, not oracle
 
@@ -156,9 +211,59 @@ other feature follows (reviewers will notice). Decide the shape up front:
   umbrella heading (`8.1`, `8.2`…), and rename §7 so its scope is clear (e.g. "Core
   requirements"). Each sub-section carries its own description + requirements together,
   which reads better than tearing requirements away from what they describe.
+  **Heading levels when nesting:** the flat house style puts `Requirement:` at h2 and
+  `Scenario:` at h3; once you add a `7.x` grouping layer (h3), demote them **two
+  levels** (h4/h5) or the Google-Docs outline inverts — Requirements outrank their
+  own parent group. `validate.py` counts them at any level.
 
 Either is fine; picking blind is not. Confirm the shape with the section owner before
 writing, not after — reshaping a pasted Google-Docs section is expensive.
+
+### 5b. Reviewing an EXISTING spec section (rewrite mode)
+
+When the input is a drafted section to improve — not a feature to document from
+scratch — phases 1–5 compress into this recipe (one Claims rewrite start-to-finish):
+
+1. **Survey the structure first.** Grep the heading map. Score it against the house
+   shape (§1–7): narrative duplicated between Key Terms / At a Glance / Journeys;
+   sections numbered past §7; appendices adrift; leaked junk content. List what folds
+   where before touching prose.
+2. **Reuse prior verified artifacts.** A requirements doc with `file:line`, a handover
+   report, extracted CSVs — mine these before re-analysing code. Re-verify a third of
+   reused evidence by spot-check.
+3. **Fan out two verify tracks in parallel:** one subagent extracts canonical
+   terminology + section map from the vendor PDF (terms only); the others verify the
+   section's strong claims against code, area by area. Rewrite only after both return.
+4. **Dedup rule:** a fact lives in exactly one place — Key Terms holds one-to-three-line
+   definitions, Journeys hold behaviour once, Requirements hold the binding form.
+   At a Glance holds only comparisons and invariants, never a third retelling.
+5. **Meaningful names over internal codes.** Parameter codes (`5/2`, `50/3`) appear
+   once, in a settings table beside their real screen labels; body text uses the name.
+6. **Appendices go to the document end,** labelled with the section number prefix
+   (`Appendix 6A…`) so sibling sections can add their own without collision; update
+   the body cross-references in the same pass.
+7. **Reviewer feedback is a set of claims, not instructions.** Verify each against
+   code before acting: this round one comment was right (a DPR path the spec skipped),
+   one was half-right (the capability existed in code, mislabelled in review), and
+   acting on either blindly would have been wrong. Reply with per-claim verdicts.
+   **When a claim holds, fix the whole document, not the pointed-at spot:** grep for
+   every same-kind occurrence (the term, the transaction, the sibling sections —
+   Purpose, Scope, figures, At a Glance) and patch them in one sweep. A local patch
+   invites the follow-up "why is §1 still wrong?" — which is exactly what happened
+   when a DPR fix landed in §6/§7 but Purpose and Figure 1 kept saying CAC-only.
+8. **Deleted figures are re-drawn as mermaid** at load-bearing points only (decision
+   flows, pipelines, state groupings) — not one per scenario.
+9. Re-run `validate.py` **and** `term_check.py` (against the repo-root `GLOSSARY.md`);
+   rebuild the paste deliverables (see §7).
+
+### Shared glossary — one vocabulary across every section
+`GLOSSARY.md` at the repo root is the term registry: canonical term, one-line
+definition, source, and **forbidden variants**. A section's Key Terms table derives
+from it; a new term is added to the registry (with its S1/code source) *before* being
+used, never defined ad hoc in one section. `term_check.py` enforces the forbidden
+variants mechanically — run it in WRITE and in every review pass. A deliberate mention
+of a foreign term (e.g. glossing what a sibling section calls the same thing) is
+waived inline with `<!-- term-ok -->`.
 
 ### 6. REVIEW — loop, one lens per pass
 Run separate passes, in this order, because they catch different things:
@@ -176,6 +281,18 @@ Run separate passes, in this order, because they catch different things:
   live. For new blocks with tables, generate HTML with `scripts/md2html.py` and paste
   once — do **not** paste raw Markdown (literal `|` and `**` result). Check that the
   block contains no figures before wholesale-replacing (image refs live elsewhere).
+- **Mermaid diagrams → Google Docs:** render each fence to PNG with
+  `npx -y @mermaid-js/mermaid-cli -i fig.mmd -o fig.png -b white -s 2`, replace the
+  fence with a placeholder before md2html, then substitute
+  `<img src="data:image/png;base64,…" style="max-width:620px;width:100%">` into the
+  HTML. Open the HTML in Chrome → Cmd+A, Cmd+C → paste; Docs uploads the images.
+  Build **two** HTML files when appendices live at the document end (section body vs
+  appendix block) so each pastes at its own spot.
+- **Paste-target style trap:** pasting while the cursor sits on a heading-styled
+  paragraph (e.g. where the old section heading was just deleted) makes Docs apply
+  that heading style to every unstyled paragraph — table cells flood the outline.
+  Safest: paste into a **blank Doc** first, check the outline, then copy Docs→Docs.
+  Never Cmd+Shift+V (drops tables and images).
 
 ### 8. VERIFY — round-trip
 Run `scripts/validate.py` on every fragment before shipping. After the user pastes,
@@ -195,13 +312,35 @@ reviewed, not this folder) — `python3 "<this-skill-dir>/scripts/<name>"`.
 |---|---|
 | `scripts/md2html.py IN.md OUT.html` | Markdown → paste-ready Google-Docs HTML (real tables). Self-reports table count and stray `\|`/`**`. |
 | `scripts/validate.py SECTION.md [TARGET.md]` | Structural checks (unbalanced tables, unclosed fences, leaked `>`, empty headings, ⚠️ on requirements); with a target, verifies every `Locate:` anchor exists. |
+| `scripts/build_paste_html.py SPEC.md OUT_PREFIX [--split-at "HEADING"]` | Full publish pipeline: renders mermaid fences to PNG (needs `npx`), embeds them base64, runs md2html, optionally splits body/appendices into two paste files. |
+| `scripts/term_check.py SPEC.md GLOSSARY.md` | Flags forbidden term variants (with the canonical replacement) against the shared registry; `<!-- term-ok -->` on a line waives a deliberate mention. Non-zero exit on hits. |
 
 ## Markers (keep consistent with the existing spec)
-`✅` = stated literally in code/DB, with `file:line`.
+`✅` = verified in code/DDL, with `file:line` — **the vendor PDF alone never earns ✅**
+(see Source hierarchy).
 `⚠️` = genuinely unconfirmed — and the note must say *what* is unknown, not just hedge.
 Never leave `⚠️` on a Requirement or Scenario heading; resolve it or move it into a note.
+Separate **fact from arithmetic from unknown** in one note when they mix: "the year
+digit is code fact ✅; the ten-year repeat is arithmetic; whether collisions occurred
+is a DBA query ⚠️" survives review — a blended claim does not.
 
 ## Scope note
 Default to reading **every tier including JSP**. The truth-lives-in-code rule and the
 per-tier ownership table are the two things that most change the result — internalise
 them before starting.
+
+## Changelog
+
+- **2.0.0** (2026-08-11) — distilled from the Claims Investigation rewrite round:
+  source-hierarchy contract (code authoritative; vendor PDF = terms + divergence
+  baseline; "S1-stated, no code located" label; a Requirement without a Scenario is
+  the doc-sourcing tell); "configuration, not code" heuristic with the five known
+  config tables; invocation modes (`new`/`review`/`verify`/`feedback`/`publish`);
+  recipe 5b for reviewing an existing section (incl. reviewer-feedback-as-claims +
+  whole-document sweep, appendix `NA` prefixing, term symmetry); heading-demotion
+  rule when nesting `7.x` groups; Google-Docs publish pipeline
+  (`build_paste_html.py`, mermaid→PNG, paste-target style trap); shared glossary
+  mechanism (`GLOSSARY.md` + `term_check.py` with `<!-- term-ok -->` waivers);
+  `validate.py` made heading-level-agnostic; fact/arithmetic/unknown separation in
+  markers.
+- **1.0.0** — original 9-phase pipeline from the first Claims pass.

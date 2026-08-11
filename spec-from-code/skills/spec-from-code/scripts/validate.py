@@ -29,12 +29,12 @@ def check_structure(path: str):
             issues.append(f'line {n}: leftover blockquote ">" → {l[:60]}')
         if l.strip() in ('#', '##', '###', '####'):
             issues.append(f'line {n}: empty heading')
-        if l.startswith(('## Requirement', '### Scenario')) and '⚠️' in l:
+        if re.match(r'#{2,5} Requirement|#{3,6} Scenario', l) and '⚠️' in l:
             issues.append(f'line {n}: unresolved ⚠️ on a requirement/scenario → {l[:70]}')
     warn = sum(l.count('⚠️') for l in lines)
     ok = sum(l.count('✅') for l in lines)
-    reqs = sum(1 for l in lines if l.startswith('## Requirement'))
-    scns = sum(1 for l in lines if l.startswith('### Scenario'))
+    reqs = sum(1 for l in lines if re.match(r'#{2,5} Requirement', l))
+    scns = sum(1 for l in lines if re.match(r'#{3,6} Scenario', l))
     print(f'{path}: {len(lines)} lines | {reqs} requirements | {scns} scenarios '
           f'| ✅ {ok} | ⚠️ {warn}')
     return issues
