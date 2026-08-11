@@ -1,6 +1,6 @@
 ---
 name: spec-from-code
-version: 2.1.1
+version: 2.2.0
 description: Reverse-engineer a trustworthy feature specification from source code — locate a feature across every tier (UI/service/DAO/DB), verify what the code ACTUALLY does against the existing spec, and produce a code-verified requirements draft, a Google-Docs change request, and a handover report, every claim traced to file:line. Use this whenever someone needs to review, write, verify, or extend a feature spec against a real codebase, or asks "does the code match the spec / what does X actually do" — even if they never say the word "skill". Tuned for legacy Java/PL-SQL systems (SITA WorldTracer) but the method generalises to any codebase. Triggers: "review feature X", "spec for X", "verify the X section", "does the code agree with the spec", "document X from the code".
 ---
 
@@ -276,21 +276,38 @@ caught all three, post-ship, one per round.
 ### Shared glossary — one vocabulary across every section
 Terminology is **two layers**, and the lookup order matters:
 
-1. **Definitions** come from the project's canonical glossary — a verbatim,
-   section-referenced extraction of the vendor PDFs (for SITA:
-   `kms-healthcare/sita-documentation` → `facts/worldtracer-canonical-glossary.md`,
-   1,044 rows). Quote or closely paraphrase its Definition column; don't invent
-   wording. If a code is not there, say so rather than guessing. Beware **context
-   collisions** — the same code can expand differently per document (AHL is *Advise
-   if Hold* in Tracing, *Advise Holding Passenger Claim File* in Claims) — resolve
-   them via the canonical repo's policy files, and record them in layer 2.
+1. **Definitions** come from the project's **canonical glossary** — a verbatim,
+   section-referenced extraction of the vendor documents, living **in the repo root**
+   (e.g. `worldtracer-canonical-glossary.md`). Quote or closely paraphrase its
+   Definition column; don't invent wording. If a code is not there, say so rather
+   than guessing. Beware **context collisions** — the same code can expand
+   differently per document (AHL is *Advise if Hold* in Tracing, *Advise Holding
+   Passenger Claim File* in Claims) — record them in layer 2.
 2. **House style** lives in the repo-root `GLOSSARY.md`: forbidden variants
    (mechanically enforced by `term_check.py`; waive a deliberate mention with
-   `<!-- term-ok -->`), code-side terms absent from the PDFs, and the collision
-   table. A new code-side term is added there *before* being used.
+   `<!-- term-ok -->`), code-side terms absent from the vendor documents, and the
+   collision table. A new code-side term is added there *before* being used.
 
 Run `term_check.py` in WRITE and in every review pass. Definitions never migrate
 into layer 2 — that duplication is how two glossaries drift apart.
+
+**Where the canonical glossary comes from — the skill is self-sufficient:**
+
+- **Designated source** (only when the owner names one): vendor a copy into the repo
+  root with a provenance header (upstream repo + commit + fetch date + re-sync
+  instructions). Never merely link an external URL — lookups must work offline and
+  `term_check.py`-style tooling reads local files.
+- **No designated source — BUILD IT.** Fan out one extraction subagent per vendor
+  document in the repo (PDF via `pdftotext -layout` or the Read tool; ~10–20k words
+  per agent, split big PDFs by section range). Each agent emits rows in the canonical
+  format — `| Code | Name | Section | Definition |`, Definition **verbatim** from the
+  document with its section reference — grouped **Transactions / Elements / Status &
+  Config Values / Screens & Masks / Concepts / Error Messages**. Then one merge pass:
+  dedupe on (document, code, name), keep same-code different-name rows as separate
+  entries, and run a **collision-review** pass listing every code whose expansion
+  differs across documents. Stamp the result with the source list and generation
+  date. Extend the same file with new sections when a previously uncovered vendor
+  document enters scope — don't start a second file.
 
 ### 6. REVIEW — loop, one lens per pass
 Run separate passes, in this order, because they catch different things:
@@ -358,6 +375,11 @@ them before starting.
 
 ## Changelog
 
+- **2.2.0** (2026-08-11) — glossary self-sufficiency: the canonical (definitions)
+  glossary lives in the repo root; when the owner designates an external source it
+  is vendored with provenance, and when none is designated the skill **builds it**
+  (per-document extraction subagents → canonical row format → dedupe +
+  collision-review pass). External URLs are never merely linked.
 - **2.1.1** (2026-08-11) — glossary made two-layer: definitions come from the
   project's canonical (verbatim, section-referenced) glossary; repo-root
   `GLOSSARY.md` holds only forbidden variants, code-side terms, and context
