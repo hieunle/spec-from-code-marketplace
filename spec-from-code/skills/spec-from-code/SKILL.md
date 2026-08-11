@@ -1,6 +1,6 @@
 ---
 name: spec-from-code
-version: 2.1.0
+version: 2.1.1
 description: Reverse-engineer a trustworthy feature specification from source code — locate a feature across every tier (UI/service/DAO/DB), verify what the code ACTUALLY does against the existing spec, and produce a code-verified requirements draft, a Google-Docs change request, and a handover report, every claim traced to file:line. Use this whenever someone needs to review, write, verify, or extend a feature spec against a real codebase, or asks "does the code match the spec / what does X actually do" — even if they never say the word "skill". Tuned for legacy Java/PL-SQL systems (SITA WorldTracer) but the method generalises to any codebase. Triggers: "review feature X", "spec for X", "verify the X section", "does the code agree with the spec", "document X from the code".
 ---
 
@@ -274,13 +274,23 @@ Figure 1 and the CAC journey kept describing the old AHL-only picture — review
 caught all three, post-ship, one per round.
 
 ### Shared glossary — one vocabulary across every section
-`GLOSSARY.md` at the repo root is the term registry: canonical term, one-line
-definition, source, and **forbidden variants**. A section's Key Terms table derives
-from it; a new term is added to the registry (with its S1/code source) *before* being
-used, never defined ad hoc in one section. `term_check.py` enforces the forbidden
-variants mechanically — run it in WRITE and in every review pass. A deliberate mention
-of a foreign term (e.g. glossing what a sibling section calls the same thing) is
-waived inline with `<!-- term-ok -->`.
+Terminology is **two layers**, and the lookup order matters:
+
+1. **Definitions** come from the project's canonical glossary — a verbatim,
+   section-referenced extraction of the vendor PDFs (for SITA:
+   `kms-healthcare/sita-documentation` → `facts/worldtracer-canonical-glossary.md`,
+   1,044 rows). Quote or closely paraphrase its Definition column; don't invent
+   wording. If a code is not there, say so rather than guessing. Beware **context
+   collisions** — the same code can expand differently per document (AHL is *Advise
+   if Hold* in Tracing, *Advise Holding Passenger Claim File* in Claims) — resolve
+   them via the canonical repo's policy files, and record them in layer 2.
+2. **House style** lives in the repo-root `GLOSSARY.md`: forbidden variants
+   (mechanically enforced by `term_check.py`; waive a deliberate mention with
+   `<!-- term-ok -->`), code-side terms absent from the PDFs, and the collision
+   table. A new code-side term is added there *before* being used.
+
+Run `term_check.py` in WRITE and in every review pass. Definitions never migrate
+into layer 2 — that duplication is how two glossaries drift apart.
 
 ### 6. REVIEW — loop, one lens per pass
 Run separate passes, in this order, because they catch different things:
@@ -348,6 +358,10 @@ them before starting.
 
 ## Changelog
 
+- **2.1.1** (2026-08-11) — glossary made two-layer: definitions come from the
+  project's canonical (verbatim, section-referenced) glossary; repo-root
+  `GLOSSARY.md` holds only forbidden variants, code-side terms, and context
+  collisions. Lookup order and no-duplication rule documented.
 - **2.1.0** (2026-08-11) — Impact pass: every change (new fact, accepted feedback,
   Q&A correction) requires a semantic review of the fixed spec-surface checklist
   (Purpose → glossary), each surface concluded `updated`/`unaffected`; recipe 5b
