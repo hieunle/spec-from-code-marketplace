@@ -1,6 +1,6 @@
 ---
 name: spec-from-code
-version: 2.0.0
+version: 2.1.0
 description: Reverse-engineer a trustworthy feature specification from source code — locate a feature across every tier (UI/service/DAO/DB), verify what the code ACTUALLY does against the existing spec, and produce a code-verified requirements draft, a Google-Docs change request, and a handover report, every claim traced to file:line. Use this whenever someone needs to review, write, verify, or extend a feature spec against a real codebase, or asks "does the code match the spec / what does X actually do" — even if they never say the word "skill". Tuned for legacy Java/PL-SQL systems (SITA WorldTracer) but the method generalises to any codebase. Triggers: "review feature X", "spec for X", "verify the X section", "does the code agree with the spec", "document X from the code".
 ---
 
@@ -246,15 +246,32 @@ scratch — phases 1–5 compress into this recipe (one Claims rewrite start-to-
    code before acting: this round one comment was right (a DPR path the spec skipped),
    one was half-right (the capability existed in code, mislabelled in review), and
    acting on either blindly would have been wrong. Reply with per-claim verdicts.
-   **When a claim holds, fix the whole document, not the pointed-at spot:** grep for
-   every same-kind occurrence (the term, the transaction, the sibling sections —
-   Purpose, Scope, figures, At a Glance) and patch them in one sweep. A local patch
+   **When a claim holds, run the Impact pass** (see the section below): a local patch
    invites the follow-up "why is §1 still wrong?" — which is exactly what happened
    when a DPR fix landed in §6/§7 but Purpose and Figure 1 kept saying CAC-only.
+   Grep helps find same-wording spots; the surface checklist is what actually closes
+   the gap.
 8. **Deleted figures are re-drawn as mermaid** at load-bearing points only (decision
    flows, pipelines, state groupings) — not one per scenario.
 9. Re-run `validate.py` **and** `term_check.py` (against the repo-root `GLOSSARY.md`);
    rebuild the paste deliverables (see §7).
+
+### Impact pass — review related content on EVERY change
+
+A new fact entering the spec — from verification, an accepted reviewer comment, or a
+Q&A correction — is not done when it lands in one paragraph. Before shipping the
+change, walk the **fixed checklist of spec surfaces** and conclude explicitly for
+each: `updated` or `unaffected` (a silent skip is not a conclusion):
+
+§1 Purpose · §2 Scope · §3 Key Terms · §5 At a Glance · every figure ·
+§6 journeys · §7 requirements + defect table · appendices · `GLOSSARY.md`
+
+This is a **semantic** review — grep for the same term is only the first step and
+never sufficient, because related content rarely repeats the wording (a figure, a
+summary sentence in Purpose, an example in a journey). Evidence for why this rule
+exists: a DPR capability fix landed in §6/§7 three separate times while Purpose,
+Figure 1 and the CAC journey kept describing the old AHL-only picture — reviewers
+caught all three, post-ship, one per round.
 
 ### Shared glossary — one vocabulary across every section
 `GLOSSARY.md` at the repo root is the term registry: canonical term, one-line
@@ -331,6 +348,11 @@ them before starting.
 
 ## Changelog
 
+- **2.1.0** (2026-08-11) — Impact pass: every change (new fact, accepted feedback,
+  Q&A correction) requires a semantic review of the fixed spec-surface checklist
+  (Purpose → glossary), each surface concluded `updated`/`unaffected`; recipe 5b
+  step 7 now delegates to it. Root cause: related content was only being patched
+  where a change landed, and reviewers caught the stale surfaces post-ship.
 - **2.0.0** (2026-08-11) — distilled from the Claims Investigation rewrite round:
   source-hierarchy contract (code authoritative; vendor PDF = terms + divergence
   baseline; "S1-stated, no code located" label; a Requirement without a Scenario is
