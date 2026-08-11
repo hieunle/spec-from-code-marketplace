@@ -31,6 +31,13 @@ def check_structure(path: str):
             issues.append(f'line {n}: empty heading')
         if re.match(r'#{2,5} Requirement|#{3,6} Scenario', l) and '⚠️' in l:
             issues.append(f'line {n}: unresolved ⚠️ on a requirement/scenario → {l[:70]}')
+        # a figure caption with no actual diagram nearby = invisible to Word/Docs readers
+        if re.match(r'\*{0,2}(Diagram|Figure|Hình)\b[\s\d:—–-]', l.strip()):
+            window = lines[max(0, n - 6):min(len(lines), n + 5)]
+            if not any(w.lstrip().startswith('```') or w.lstrip().startswith('![')
+                       or '<img' in w for w in window):
+                issues.append(f'line {n}: diagram/figure caption with no mermaid fence or '
+                              f'image within 5 lines → {l[:60]}')
     warn = sum(l.count('⚠️') for l in lines)
     ok = sum(l.count('✅') for l in lines)
     reqs = sum(1 for l in lines if re.match(r'#{2,5} Requirement', l))

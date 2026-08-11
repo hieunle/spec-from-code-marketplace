@@ -1,6 +1,6 @@
 ---
 name: spec-from-code
-version: 2.2.0
+version: 2.3.0
 description: Reverse-engineer a trustworthy feature specification from source code — locate a feature across every tier (UI/service/DAO/DB), verify what the code ACTUALLY does against the existing spec, and produce a code-verified requirements draft, a Google-Docs change request, and a handover report, every claim traced to file:line. Use this whenever someone needs to review, write, verify, or extend a feature spec against a real codebase, or asks "does the code match the spec / what does X actually do" — even if they never say the word "skill". Tuned for legacy Java/PL-SQL systems (SITA WorldTracer) but the method generalises to any codebase. Triggers: "review feature X", "spec for X", "verify the X section", "does the code agree with the spec", "document X from the code".
 ---
 
@@ -14,20 +14,23 @@ This skill was distilled from a full pass over the **Claims** feature (PL/SQL + 
 service/DAO/validator + 151 JSP + DDL + the 300-page vendor spec). Reuse it for the
 remaining features.
 
-## Invocation modes
+## Commands (one per action)
 
-The argument decides the flow — pick the narrowest mode that fits:
+Each action is its own thin command skill living beside this one; every command
+**requires reading this core SKILL.md first** — it holds the method, the commands
+pin the flow:
 
-| Invocation | Flow |
+| Command | Flow |
 |---|---|
-| `new <feature>` | Full pipeline, phases 1–9 |
-| `review <spec.md>` | Rewrite an existing section — recipe 5b |
-| `verify <spec.md> [area]` | Verification only: audit every ✅ and S1-only claim, report verdicts, change nothing |
-| `feedback <spec.md> + comments/screenshots` | Per-claim verdicts vs code, then sweep-patch the whole document (5b step 7) |
-| `publish <spec.md>` | INTEGRATE only: `scripts/build_paste_html.py` → paste-ready HTML + instructions |
+| `spec-new <feature>` | Full pipeline, phases 1–9 |
+| `spec-review <spec.md>` | Rewrite an existing section — recipe 5b |
+| `spec-verify <spec.md> [area]` | Verification only: audit every ✅ and S1-only claim, report verdicts, change nothing |
+| `spec-feedback <spec.md> + comments/screenshots` | Per-claim verdicts vs code, then Impact pass (5b step 7) |
+| `spec-publish <spec.md>` | INTEGRATE only: `scripts/build_paste_html.py` → paste-ready HTML + instructions |
 
-No diff/PR mode: the reviewed repo is a fixed snapshot — the code does not change
-under the spec.
+Invoking `spec-from-code` directly with a mode argument still works — pick the
+narrowest flow that fits. No diff/PR mode: the reviewed repo is a fixed snapshot —
+the code does not change under the spec.
 
 ## Prerequisites (what a fresh checkout needs)
 
@@ -190,10 +193,45 @@ Cross-check code against the existing spec and produce three buckets:
 Two independent sources agreeing (e.g. JSP + spec + Java on mandatory elements) is the
 highest confidence you can assign.
 
+**Open-question discipline.** Every unknown that becomes a `Q-` item carries, at
+birth, an **owner it is routed to** (dev / DBA / operations / vendor) and a
+**working default** the spec assumes until answered. All `Q-` items live in **one**
+"Open questions" table (an appendix); body text references the ID only — never
+restate the question inline (a BA review counted the same unanswered question
+repeated 7 times through one document). A question touching a **core rule** (a gate,
+a state transition, a purge condition) blocks publish until resolved — it cannot
+ship as a hedge inside the rule's own Requirement. An "as-is" spec carrying more
+than ~10 open questions needs a resolve round before review, not a bigger appendix.
+
 ### 5. WRITE — draft the requirements
 Use `templates/requirements.md`. Requirements are `MUST` statements; each is followed
 by `WHEN`/`THEN` scenarios and a `✅`/`⚠️` marker. Keep a running defect table. This is
 where the turn ends: output the draft + a preliminary coverage/confidence read.
+
+**Readability contract** (from a BA review of a spec that was code-accurate yet hard
+to read — accuracy does not excuse the prose):
+
+1. **One sentence, one fact.** Never pack file types + channels + an open-question
+   reference into a single opening sentence. If a sentence needs three parentheses,
+   it is three sentences.
+2. **Bold is for definitions and warnings only** — a term is bold where it is
+   defined (once), and genuinely load-bearing cautions. Bolding every domain term
+   erases the emphasis.
+3. **Traceability machinery stays out of the prose.** ✅/⚠️ markers, `file:line`,
+   F-/Q-/REQ- codes belong on the evidence/note line at the end of a block or in a
+   table column — not mid-sentence. A business reader must be able to read a journey
+   without context-switching into the audit trail; the auditor finds everything on
+   the evidence lines.
+4. **Table cells hold short values, not prose.** A sentence that wraps inside a cell
+   gets truncated by paste round-trips and reads as a formatting bug; put the
+   explanation in the paragraph around the table.
+5. **Single-source rule.** Each fact has exactly one canonical home (usually §3 Key
+   Terms or its Requirement); every other surface cross-references it ("see §3") —
+   recipe 5b step 4 and REVIEW lens 5 enforce this. One summary-table layer per
+   document: if "At a Glance" exists, no second quick-reference table repeating it.
+6. **A figure named is a figure shown.** Never ship "Diagram: X" as a text
+   placeholder — the mermaid fence or embedded image travels with the caption
+   (`validate.py` flags orphan captions).
 
 ### 5a. Before you number sections — is this a compound feature?
 Most features fit one shape: a short description (§1–6) then all Requirements +
@@ -273,6 +311,14 @@ exists: a DPR capability fix landed in §6/§7 three separate times while Purpos
 Figure 1 and the CAC journey kept describing the old AHL-only picture — reviewers
 caught all three, post-ship, one per round.
 
+**Update by cross-reference, not restatement.** When a surface needs the new fact,
+the fix is usually a one-line adjustment or a "see §X" pointer to the fact's
+canonical home — never a re-paste of the full explanation. A multi-pass document
+where every pass restated its context ended up carrying the same sentence 5–7 times
+(a BA review listed them one by one); the Impact pass exists to keep surfaces
+consistent, not to clone facts. `dup_check.py` catches the failure mode after the
+fact; this rule prevents it.
+
 ### Shared glossary — one vocabulary across every section
 Terminology is **two layers**, and the lookup order matters:
 
@@ -316,6 +362,10 @@ Run separate passes, in this order, because they catch different things:
    over-conclusions get caught
 3. **Usability** — a worked example, acceptance criteria, data-migration notes
 4. **Consistency** — numbering, cross-refs, no two sentences disagreeing
+5. **Redundancy** — run `dup_check.py`; every fact stated more than once collapses
+   to its canonical home plus cross-references, and only one summary-table layer
+   survives. Also re-check the Readability contract here (bold density, machinery
+   in prose, table-cell prose) — multi-pass editing erodes it silently.
 
 ### 7. INTEGRATE — get it into the shared Google-Docs spec safely
 - Write a **change request** (`templates/change-request.md`): each edit has a unique
@@ -355,9 +405,10 @@ reviewed, not this folder) — `python3 "<this-skill-dir>/scripts/<name>"`.
 | Script | Does |
 |---|---|
 | `scripts/md2html.py IN.md OUT.html` | Markdown → paste-ready Google-Docs HTML (real tables). Self-reports table count and stray `\|`/`**`. |
-| `scripts/validate.py SECTION.md [TARGET.md]` | Structural checks (unbalanced tables, unclosed fences, leaked `>`, empty headings, ⚠️ on requirements); with a target, verifies every `Locate:` anchor exists. |
+| `scripts/validate.py SECTION.md [TARGET.md]` | Structural checks (unbalanced tables, unclosed fences, leaked `>`, empty headings, ⚠️ on requirements, figure captions with no diagram nearby); with a target, verifies every `Locate:` anchor exists. |
 | `scripts/build_paste_html.py SPEC.md OUT_PREFIX [--split-at "HEADING"]` | Full publish pipeline: renders mermaid fences to PNG (needs `npx`), embeds them base64, runs md2html, optionally splits body/appendices into two paste files. |
-| `scripts/term_check.py SPEC.md GLOSSARY.md` | Flags forbidden term variants (with the canonical replacement) against the shared registry; `<!-- term-ok -->` on a line waives a deliberate mention. Non-zero exit on hits. |
+| `scripts/term_check.py SPEC.md GLOSSARY.md [CANONICAL.md ...]` | Flags forbidden term variants (with the canonical replacement) against the shared registry; `<!-- term-ok -->` on a line waives a deliberate mention. Non-zero exit on hits. Also lists (INFO-only) acronyms defined in no given glossary. |
+| `scripts/dup_check.py SPEC.md [--min-words 8] [--fail-at 3]` | Flags near-verbatim repeated sentences (single-source rule); fails when a sentence appears 3+ times, lists 2× repeats as INFO. |
 
 ## Markers (keep consistent with the existing spec)
 `✅` = verified in code/DDL, with `file:line` — **the vendor PDF alone never earns ✅**
@@ -375,6 +426,18 @@ them before starting.
 
 ## Changelog
 
+- **2.3.0** (2026-08-11) — readability & anti-duplication round, distilled from a
+  BA's review of a sibling section (code-accurate but hard to read): Readability
+  contract in WRITE (one-fact sentences, bold discipline, traceability machinery
+  out of prose, no prose in table cells, single-source rule, no figure
+  placeholders); REVIEW lens 5 Redundancy + new `dup_check.py`; Impact pass
+  amended to "update by cross-reference, not restatement"; open-question
+  discipline in RECONCILE (owner + working default at birth, one Open-questions
+  table, core-rule questions block publish, ~10-question ceiling); `validate.py`
+  flags orphan figure captions; `term_check.py` accepts extra glossary files and
+  lists undefined acronyms (INFO). Invocation modes split into one thin command
+  skill per action (`spec-new/-review/-verify/-feedback/-publish`), superpowers
+  style, with this file as the shared core.
 - **2.2.0** (2026-08-11) — glossary self-sufficiency: the canonical (definitions)
   glossary lives in the repo root; when the owner designates an external source it
   is vendored with provenance, and when none is designated the skill **builds it**
