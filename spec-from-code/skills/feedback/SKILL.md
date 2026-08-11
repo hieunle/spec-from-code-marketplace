@@ -1,9 +1,9 @@
 ---
-name: spec-feedback
-description: Use when reviewer comments or screenshots about a spec section arrive and must be verified and applied — "is this feedback right", "reviewer says X is wrong". Arguments: the section .md file + the comments/screenshots.
+name: feedback
+description: (spec-from-code) Use when reviewer comments or screenshots about a spec section arrive and must be verified and applied — "is this feedback right", "reviewer says X is wrong". Arguments: the section .md file + the comments/screenshots.
 ---
 
-# spec-feedback — feedback is claims, not instructions
+# feedback — feedback is claims, not instructions
 
 **REQUIRED BACKGROUND:** read the sibling `spec-from-code/SKILL.md` in full before
 starting — especially recipe 5b step 7 and the Impact pass.

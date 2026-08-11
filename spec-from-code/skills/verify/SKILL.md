@@ -1,9 +1,9 @@
 ---
-name: spec-verify
-description: Use when a spec's claims must be audited against the code without changing the document — "does the code agree with the spec", "verify the X section". Arguments: the section .md file, optionally an area to focus on.
+name: verify
+description: (spec-from-code) Use when a spec's claims must be audited against the code without changing the document — "does the code agree with the spec", "verify the X section". Arguments: the section .md file, optionally an area to focus on.
 ---
 
-# spec-verify — audit claims, change nothing
+# verify — audit claims, change nothing
 
 **REQUIRED BACKGROUND:** read the sibling `spec-from-code/SKILL.md` in full before
 starting — especially the source-hierarchy contract and marker rules.

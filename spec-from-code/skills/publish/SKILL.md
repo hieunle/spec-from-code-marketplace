@@ -1,9 +1,9 @@
 ---
-name: spec-publish
-description: Use when a finished spec .md must go into the shared Google Doc — "make the paste HTML", "publish this section to Docs". Argument: the section .md file.
+name: publish
+description: (spec-from-code) Use when a finished spec .md must go into the shared Google Doc — "make the paste HTML", "publish this section to Docs". Argument: the section .md file.
 ---
 
-# spec-publish — Google-Docs paste deliverables
+# publish — Google-Docs paste deliverables
 
 **REQUIRED BACKGROUND:** read the sibling `spec-from-code/SKILL.md` in full before
 starting — especially phase 7 INTEGRATE (mermaid→PNG pipeline, paste-target style

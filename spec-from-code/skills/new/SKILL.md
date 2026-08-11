@@ -1,9 +1,9 @@
 ---
-name: spec-new
-description: Use when a feature has no spec section yet and one must be written from the codebase — "document X from the code", "write the spec for X". Argument: the feature name/area.
+name: new
+description: (spec-from-code) Use when a feature has no spec section yet and one must be written from the codebase — "document X from the code", "write the spec for X". Argument: the feature name/area.
 ---
 
-# spec-new — full pipeline (phases 1–9)
+# new — full pipeline (phases 1–9)
 
 **REQUIRED BACKGROUND:** read the sibling `spec-from-code/SKILL.md` in full before
 starting — it holds the method (source hierarchy, per-tier truth ownership,

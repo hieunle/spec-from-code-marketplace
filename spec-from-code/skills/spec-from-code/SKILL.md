@@ -1,7 +1,7 @@
 ---
 name: spec-from-code
-version: 2.3.0
-description: Reverse-engineer a trustworthy feature specification from source code — locate a feature across every tier (UI/service/DAO/DB), verify what the code ACTUALLY does against the existing spec, and produce a code-verified requirements draft, a Google-Docs change request, and a handover report, every claim traced to file:line. Use this whenever someone needs to review, write, verify, or extend a feature spec against a real codebase, or asks "does the code match the spec / what does X actually do" — even if they never say the word "skill". Tuned for legacy Java/PL-SQL systems (SITA WorldTracer) but the method generalises to any codebase. Triggers: "review feature X", "spec for X", "verify the X section", "does the code agree with the spec", "document X from the code".
+version: 2.4.0
+description: (spec-from-code) Reverse-engineer a trustworthy feature specification from source code — locate a feature across every tier (UI/service/DAO/DB), verify what the code ACTUALLY does against the existing spec, and produce a code-verified requirements draft, a Google-Docs change request, and a handover report, every claim traced to file:line. Use this whenever someone needs to review, write, verify, or extend a feature spec against a real codebase, or asks "does the code match the spec / what does X actually do" — even if they never say the word "skill". Tuned for legacy Java/PL-SQL systems (SITA WorldTracer) but the method generalises to any codebase. Triggers: "review feature X", "spec for X", "verify the X section", "does the code agree with the spec", "document X from the code".
 ---
 
 # spec-from-code
@@ -22,11 +22,11 @@ pin the flow:
 
 | Command | Flow |
 |---|---|
-| `spec-new <feature>` | Full pipeline, phases 1–9 |
-| `spec-review <spec.md>` | Rewrite an existing section — recipe 5b |
-| `spec-verify <spec.md> [area]` | Verification only: audit every ✅ and S1-only claim, report verdicts, change nothing |
-| `spec-feedback <spec.md> + comments/screenshots` | Per-claim verdicts vs code, then Impact pass (5b step 7) |
-| `spec-publish <spec.md>` | INTEGRATE only: `scripts/build_paste_html.py` → paste-ready HTML + instructions |
+| `/spec-from-code:new <feature>` | Full pipeline, phases 1–9 |
+| `/spec-from-code:review <spec.md>` | Rewrite an existing section — recipe 5b |
+| `/spec-from-code:verify <spec.md> [area]` | Verification only: audit every ✅ and S1-only claim, report verdicts, change nothing |
+| `/spec-from-code:feedback <spec.md> + comments/screenshots` | Per-claim verdicts vs code, then Impact pass (5b step 7) |
+| `/spec-from-code:publish <spec.md>` | INTEGRATE only: `scripts/build_paste_html.py` → paste-ready HTML + instructions |
 
 Invoking `spec-from-code` directly with a mode argument still works — pick the
 narrowest flow that fits. No diff/PR mode: the reviewed repo is a fixed snapshot —
@@ -426,6 +426,10 @@ them before starting.
 
 ## Changelog
 
+- **2.4.0** (2026-08-11) — command skills renamed to bare actions
+  (`new/review/verify/feedback/publish`) so plugin installs expose
+  `/spec-from-code:new` etc.; every skill description gains the
+  `(spec-from-code)` prefix for the picker.
 - **2.3.0** (2026-08-11) — readability & anti-duplication round, distilled from a
   BA's review of a sibling section (code-accurate but hard to read): Readability
   contract in WRITE (one-fact sentences, bold discipline, traceability machinery
@@ -436,8 +440,7 @@ them before starting.
   table, core-rule questions block publish, ~10-question ceiling); `validate.py`
   flags orphan figure captions; `term_check.py` accepts extra glossary files and
   lists undefined acronyms (INFO). Invocation modes split into one thin command
-  skill per action (`spec-new/-review/-verify/-feedback/-publish`), superpowers
-  style, with this file as the shared core.
+  skill per action, superpowers style, with this file as the shared core.
 - **2.2.0** (2026-08-11) — glossary self-sufficiency: the canonical (definitions)
   glossary lives in the repo root; when the owner designates an external source it
   is vendored with provenance, and when none is designated the skill **builds it**

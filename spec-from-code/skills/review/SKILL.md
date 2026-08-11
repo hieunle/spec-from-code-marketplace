@@ -1,9 +1,9 @@
 ---
-name: spec-review
-description: Use when an existing spec section needs rewriting or restructuring — duplicated narrative, wrong shape, doc-sourced claims, deleted figures. Argument: the section .md file.
+name: review
+description: (spec-from-code) Use when an existing spec section needs rewriting or restructuring — duplicated narrative, wrong shape, doc-sourced claims, deleted figures. Argument: the section .md file.
 ---
 
-# spec-review — rewrite an existing section (core recipe 5b)
+# review — rewrite an existing section (core recipe 5b)
 
 **REQUIRED BACKGROUND:** read the sibling `spec-from-code/SKILL.md` in full before
 starting — it holds the method. This command pins recipe 5b:
