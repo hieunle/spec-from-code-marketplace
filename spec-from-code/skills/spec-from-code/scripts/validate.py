@@ -7,6 +7,9 @@ Catches the exact classes of error that bit us on the Claims section:
   - leftover blockquote `>` prefixes (blockquote leaked into a paste)
   - empty headings (`##` with no text)
   - ⚠️ markers sitting on Requirement/Scenario headings (should be resolved)
+  - WARN (non-fatal): normative content inside an appendix block — a
+    Requirement/Scenario heading or a MUST line (allocation rule: appendices
+    hold lookup material only)
   - optional: every `**Locate:**` anchor in a change-request actually exists in a target doc
 
 Usage:
@@ -38,13 +41,23 @@ def check_structure(path: str):
                        or '<img' in w for w in window):
                 issues.append(f'line {n}: diagram/figure caption with no mermaid fence or '
                               f'image within 5 lines → {l[:60]}')
+    # allocation rule: appendices hold lookup material only — normative content
+    # (a Requirement/Scenario heading, a MUST line) must live in the body
+    warnings = []
+    appendix_at = next((i for i, l in enumerate(lines)
+                        if re.match(r'#{1,4}\s.*\b(Appendix|Phụ lục)\b', l)), None)
+    if appendix_at is not None:
+        for n, l in enumerate(lines[appendix_at:], appendix_at + 1):
+            if re.match(r'#{2,6}\s+(Requirement|Scenario)\b', l) or re.search(r'\bMUST\b', l):
+                warnings.append(f'line {n}: normative content in appendix — '
+                                f'pull it in-place → {l.strip()[:60]}')
     warn = sum(l.count('⚠️') for l in lines)
     ok = sum(l.count('✅') for l in lines)
     reqs = sum(1 for l in lines if re.match(r'#{2,5} Requirement', l))
     scns = sum(1 for l in lines if re.match(r'#{3,6} Scenario', l))
     print(f'{path}: {len(lines)} lines | {reqs} requirements | {scns} scenarios '
           f'| ✅ {ok} | ⚠️ {warn}')
-    return issues
+    return issues, warnings
 
 
 def check_anchors(cr_path: str, target_path: str):
@@ -64,9 +77,13 @@ def check_anchors(cr_path: str, target_path: str):
 def main():
     if len(sys.argv) not in (2, 3):
         sys.exit('usage: validate.py SECTION.md [TARGET.md]')
-    issues = check_structure(sys.argv[1])
+    issues, warnings = check_structure(sys.argv[1])
     if len(sys.argv) == 3:
         issues += check_anchors(sys.argv[1], sys.argv[2])
+    if warnings:
+        print('\nWARNINGS (non-fatal):')
+        for x in warnings:
+            print('  -', x)
     if issues:
         print('\nISSUES:')
         for x in issues:

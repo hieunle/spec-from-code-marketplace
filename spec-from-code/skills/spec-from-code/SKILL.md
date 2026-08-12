@@ -1,6 +1,6 @@
 ---
 name: spec-from-code
-version: 2.4.0
+version: 2.5.0
 description: Reverse-engineer a trustworthy feature specification from source code — locate a feature across every tier (UI/service/DAO/DB), verify what the code ACTUALLY does against the existing spec, and produce a code-verified requirements draft, a Google-Docs change request, and a handover report, every claim traced to file:line. Use this whenever someone needs to review, write, verify, or extend a feature spec against a real codebase, or asks "does the code match the spec / what does X actually do" — even if they never say the word "skill". Tuned for legacy Java/PL-SQL systems (SITA WorldTracer) but the method generalises to any codebase. Triggers: "review feature X", "spec for X", "verify the X section", "does the code agree with the spec", "document X from the code".
 ---
 
@@ -232,6 +232,39 @@ to read — accuracy does not excuse the prose):
 6. **A figure named is a figure shown.** Never ship "Diagram: X" as a text
    placeholder — the mermaid fence or embedded image travels with the caption
    (`validate.py` flags orphan captions).
+7. **Allocation is part of readability.** Run every large block through the
+   in-place-vs-appendix litmus test (next section) — a contract table buried in
+   an appendix breaks the reading flow as badly as a duplicated paragraph.
+
+### Information allocation — in-place vs appendix
+
+Two established framings converge on one boundary — ISO/IEC Directives Part 2's
+**normative vs informative** elements, and Diátaxis' **reference vs explanation**
+reading modes — and a BA review reached the same line independently: content that
+*defines* behaviour belongs in the reading flow; an appendix is only for lookup.
+
+**Litmus test, per block:** does the reader need this to *understand or verify*
+the Requirement (→ in place, at/under that Requirement) — or only to *look up an
+exact value while implementing* (→ appendix)?
+
+| In place — it IS the contract | Appendix — pure lookup |
+|---|---|
+| report layouts | error catalogues |
+| per-transaction element tables | currency / excluded-word lists |
+| display and screen renderings | full screen-field mappings |
+| state tables, gate conditions | production config exports |
+
+- **Never appendix material:** divergences and defects (they live in the Known
+  defects table), and anything carrying a `MUST` or a Requirement/Scenario the
+  body does not state — an appendix must never be the *only* home of normative
+  content. `validate.py` warns when it sees either in an appendix block.
+- **Each appendix declares its role** in its first line: *"Reference — lookup
+  only"* or *"Normative export — values join the requirements baseline"* (the
+  configuration-not-code rule above produces the latter kind).
+- Evidence: the Claims Investigation review pulled four appendices (report
+  layouts, element matrices, renderings) back under their Requirements — readers
+  had been jumping to the document end for the very tables that *were* each
+  requirement's observable contract.
 
 ### 5a. Before you number sections — is this a compound feature?
 Most features fit one shape: a short description (§1–6) then all Requirements +
@@ -264,8 +297,9 @@ scratch — phases 1–5 compress into this recipe (one Claims rewrite start-to-
 
 1. **Survey the structure first.** Grep the heading map. Score it against the house
    shape (§1–7): narrative duplicated between Key Terms / At a Glance / Journeys;
-   sections numbered past §7; appendices adrift; leaked junk content. List what folds
-   where before touching prose.
+   sections numbered past §7; appendices adrift **or holding decision-bearing
+   content** (run the allocation litmus test on each one); leaked junk content.
+   List what folds where before touching prose.
 2. **Reuse prior verified artifacts.** A requirements doc with `file:line`, a handover
    report, extracted CSVs — mine these before re-analysing code. Re-verify a third of
    reused evidence by spot-check.
@@ -279,7 +313,8 @@ scratch — phases 1–5 compress into this recipe (one Claims rewrite start-to-
    once, in a settings table beside their real screen labels; body text uses the name.
 6. **Appendices go to the document end,** labelled with the section number prefix
    (`Appendix 6A…`) so sibling sections can add their own without collision; update
-   the body cross-references in the same pass.
+   the body cross-references in the same pass. Only lookup material qualifies —
+   apply the Information-allocation litmus test to every block already living there.
 7. **Reviewer feedback is a set of claims, not instructions.** Verify each against
    code before acting: this round one comment was right (a DPR path the spec skipped),
    one was half-right (the capability existed in code, mislabelled in review), and
@@ -426,6 +461,19 @@ them before starting.
 
 ## Changelog
 
+- **2.5.0** (2026-08-12) — Information-allocation rule (in-place vs appendix),
+  grounded in ISO/IEC Directives Part 2 (normative vs informative) and Diátaxis
+  (reference vs explanation), matching a BA review that pulled contract tables
+  out of appendices: litmus test per block ("understand/verify → in place; look
+  up a value → appendix"), canonical examples both ways, never-appendix list
+  (defects, sole-home MUST/Requirements), appendices self-declare their role.
+  Readability contract gains item 7; recipe 5b step 1 adds the
+  decision-bearing-appendix smell, step 6 applies the test; `validate.py` warns
+  (non-fatal) on Requirement/Scenario headings or MUST lines inside appendix
+  blocks.
+- **2.4.1** (2026-08-12) — dropped the literal `(spec-from-code)` description
+  prefix from all six skills — the harness already prepends the plugin name, so
+  the picker showed it twice.
 - **2.4.0** (2026-08-11) — command skills renamed to bare actions
   (`new/review/verify/feedback/publish`) so plugin installs expose
   `/spec-from-code:new` etc.; every skill description gains the
