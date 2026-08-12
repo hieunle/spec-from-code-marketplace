@@ -1,6 +1,6 @@
 ---
 name: publish
-description: (spec-from-code) Use when a finished spec .md must go into the shared Google Doc — "make the paste HTML", "publish this section to Docs". Argument: the section .md file.
+description: Use when a finished spec .md must go into the shared Google Doc — "make the paste HTML", "publish this section to Docs". Argument: the section .md file.
 ---
 
 # publish — Google-Docs paste deliverables

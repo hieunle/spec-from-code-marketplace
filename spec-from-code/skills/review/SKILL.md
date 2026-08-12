@@ -1,6 +1,6 @@
 ---
 name: review
-description: (spec-from-code) Use when an existing spec section needs rewriting or restructuring — duplicated narrative, wrong shape, doc-sourced claims, deleted figures. Argument: the section .md file.
+description: Use when an existing spec section needs rewriting or restructuring — duplicated narrative, wrong shape, doc-sourced claims, deleted figures. Argument: the section .md file.
 ---
 
 # review — rewrite an existing section (core recipe 5b)

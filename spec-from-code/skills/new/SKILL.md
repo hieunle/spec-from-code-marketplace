@@ -1,6 +1,6 @@
 ---
 name: new
-description: (spec-from-code) Use when a feature has no spec section yet and one must be written from the codebase — "document X from the code", "write the spec for X". Argument: the feature name/area.
+description: Use when a feature has no spec section yet and one must be written from the codebase — "document X from the code", "write the spec for X". Argument: the feature name/area.
 ---
 
 # new — full pipeline (phases 1–9)

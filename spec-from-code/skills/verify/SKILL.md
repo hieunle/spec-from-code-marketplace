@@ -1,6 +1,6 @@
 ---
 name: verify
-description: (spec-from-code) Use when a spec's claims must be audited against the code without changing the document — "does the code agree with the spec", "verify the X section". Arguments: the section .md file, optionally an area to focus on.
+description: Use when a spec's claims must be audited against the code without changing the document — "does the code agree with the spec", "verify the X section". Arguments: the section .md file, optionally an area to focus on.
 ---
 
 # verify — audit claims, change nothing

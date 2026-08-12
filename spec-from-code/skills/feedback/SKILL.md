@@ -1,6 +1,6 @@
 ---
 name: feedback
-description: (spec-from-code) Use when reviewer comments or screenshots about a spec section arrive and must be verified and applied — "is this feedback right", "reviewer says X is wrong". Arguments: the section .md file + the comments/screenshots.
+description: Use when reviewer comments or screenshots about a spec section arrive and must be verified and applied — "is this feedback right", "reviewer says X is wrong". Arguments: the section .md file + the comments/screenshots.
 ---
 
 # feedback — feedback is claims, not instructions
