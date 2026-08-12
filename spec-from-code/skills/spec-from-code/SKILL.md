@@ -1,6 +1,6 @@
 ---
 name: spec-from-code
-version: 2.5.0
+version: 2.5.1
 description: Reverse-engineer a trustworthy feature specification from source code — locate a feature across every tier (UI/service/DAO/DB), verify what the code ACTUALLY does against the existing spec, and produce a code-verified requirements draft, a Google-Docs change request, and a handover report, every claim traced to file:line. Use this whenever someone needs to review, write, verify, or extend a feature spec against a real codebase, or asks "does the code match the spec / what does X actually do" — even if they never say the word "skill". Tuned for legacy Java/PL-SQL systems (SITA WorldTracer) but the method generalises to any codebase. Triggers: "review feature X", "spec for X", "verify the X section", "does the code agree with the spec", "document X from the code".
 ---
 
@@ -225,8 +225,9 @@ to read — accuracy does not excuse the prose):
 4. **Table cells hold short values, not prose.** A sentence that wraps inside a cell
    gets truncated by paste round-trips and reads as a formatting bug; put the
    explanation in the paragraph around the table.
-5. **Single-source rule.** Each fact has exactly one canonical home (usually §3 Key
-   Terms or its Requirement); every other surface cross-references it ("see §3") —
+5. **Single-source rule.** Each fact has exactly one canonical home — usually §3 Key
+   Terms or its Requirement; for pure lookup values, their appendix (see
+   Information allocation). Every other surface cross-references it ("see §3") —
    recipe 5b step 4 and REVIEW lens 5 enforce this. One summary-table layer per
    document: if "At a Glance" exists, no second quick-reference table repeating it.
 6. **A figure named is a figure shown.** Never ship "Diagram: X" as a text
@@ -306,8 +307,9 @@ scratch — phases 1–5 compress into this recipe (one Claims rewrite start-to-
 3. **Fan out two verify tracks in parallel:** one subagent extracts canonical
    terminology + section map from the vendor PDF (terms only); the others verify the
    section's strong claims against code, area by area. Rewrite only after both return.
-4. **Dedup rule:** a fact lives in exactly one place — Key Terms holds one-to-three-line
-   definitions, Journeys hold behaviour once, Requirements hold the binding form.
+4. **Dedup rule** (the Single-source rule applied): a fact lives in exactly one
+   place — Key Terms holds one-to-three-line definitions, Journeys hold behaviour
+   once, Requirements hold the binding form, appendices hold exact lookup values.
    At a Glance holds only comparisons and invariants, never a third retelling.
 5. **Meaningful names over internal codes.** Parameter codes (`5/2`, `50/3`) appear
    once, in a settings table beside their real screen labels; body text uses the name.
@@ -461,6 +463,10 @@ them before starting.
 
 ## Changelog
 
+- **2.5.1** (2026-08-12) — reconciled the Single-source rule with the new
+  allocation rule: canonical homes now explicitly include "their appendix" for
+  pure lookup values (Readability contract item 5 and recipe 5b step 4, the
+  latter labelled as the same rule applied).
 - **2.5.0** (2026-08-12) — Information-allocation rule (in-place vs appendix),
   grounded in ISO/IEC Directives Part 2 (normative vs informative) and Diátaxis
   (reference vs explanation), matching a BA review that pulled contract tables

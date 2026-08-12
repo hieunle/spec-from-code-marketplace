@@ -1,7 +1,7 @@
 {
   "name": "spec-from-code",
   "description": "(spec-from-code) Reverse-engineer a trustworthy feature specification from source code — locate a feature across every tier (UI/service/DAO/DB), verify what the code ACTUALLY does against the existing spec, and produce a code-verified requirements draft, a Google-Docs change request, and a handover report, every claim traced to file:line. Use this whenever someone needs to review, write, verify, or extend a feature spec against a real codebase, or asks \"does the code match the spec / what does X actually do\" — even if they never say the word \"skill\". Tuned for legacy Java/PL-SQL systems (SITA WorldTracer) but the method generalises to any codebase. Triggers: \"review feature X\", \"spec for X\", \"verify the X section\", \"does the code agree with the spec\", \"document X from the code\".",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "author": {
     "name": "Hieu Le",
     "email": "hieunle@kms-technology.com"
