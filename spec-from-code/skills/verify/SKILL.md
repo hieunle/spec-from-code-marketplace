@@ -14,6 +14,7 @@ Flow — this mode is **read-only on the spec**:
 2. Fan out verify subagents per area; each claim gets a verdict:
    **confirmed** (`file:line`) / **divergence vs S1** (both cited) / **not located**.
 3. Check the "configuration, not code" heuristic on every absolute the spec states.
-4. Report the verdict table + suggested relabels (✅ → ⚠️ or Divergence). Do NOT
+4. Report the verdict table + suggested relabels (✅ → ⚠️ confirmed-with-caveat,
+   ❓ intent-unsettled, or Divergence). Do NOT
    edit the spec — hand the verdicts to the owner (or to `spec-feedback` /
    `spec-review` if a rewrite is then requested).

@@ -1,7 +1,7 @@
 ---
 name: spec-from-code
-version: 2.5.1
-description: Reverse-engineer a trustworthy feature specification from source code — locate a feature across every tier (UI/service/DAO/DB), verify what the code ACTUALLY does against the existing spec, and produce a code-verified requirements draft, a Google-Docs change request, and a handover report, every claim traced to file:line. Use this whenever someone needs to review, write, verify, or extend a feature spec against a real codebase, or asks "does the code match the spec / what does X actually do" — even if they never say the word "skill". Tuned for legacy Java/PL-SQL systems (SITA WorldTracer) but the method generalises to any codebase. Triggers: "review feature X", "spec for X", "verify the X section", "does the code agree with the spec", "document X from the code".
+version: 2.7.0
+description: Reverse-engineer a trustworthy feature specification from source code — locate a feature across every tier (UI/service/DAO/DB), verify what the code ACTUALLY does against the existing spec, and produce a code-verified requirements draft, a Google-Docs change request, and a handover report, every claim traced to file:line. Use this whenever someone needs to review, write, verify, extend, or revise a feature spec against a real codebase, or asks "does the code match the spec / what does X actually do" — even if they never say the word "skill". Tuned for legacy Java/PL-SQL systems (SITA WorldTracer) but the method generalises to any codebase. Triggers: "review feature X", "spec for X", "verify the X section", "does the code agree with the spec", "document X from the code", "restructure/tidy the spec for the customer".
 ---
 
 # spec-from-code
@@ -18,7 +18,21 @@ remaining features.
 
 Each action is its own thin command skill living beside this one; every command
 **requires reading this core SKILL.md first** — it holds the method, the commands
-pin the flow:
+pin the flow. (`revise` is the exception: it is a self-contained BA editing pass
+that carries its own full procedure and never touches code.)
+
+**Canonical spec structure:** the customer-facing capability spec follows the
+**§1–8 canonical structure** defined in
+`../revise/reference/spec-structure-template.md` (Purpose / Scope / Key Terms /
+Business Journey / Requirements / Open Questions / Possible Known Issues /
+Supporting materials — §1–4 context, §5 the in-scope code-derived requirements,
+§6–8 optional and content-driven).
+
+`templates/requirements.md` **is** that shape, so `new` emits a conforming spec
+directly — one command gets you a customer-shaped document, and `validate.py`
+enforces the conformance mechanically. `revise` then exists for specs that did
+**not** come from this pipeline: Velox-generated output, hand-written team specs,
+legacy documents. Running it on a spec `new` just produced is a no-op by design.
 
 | Command | Flow |
 |---|---|
@@ -27,6 +41,7 @@ pin the flow:
 | `/spec-from-code:verify <spec.md> [area]` | Verification only: audit every ✅ and S1-only claim, report verdicts, change nothing |
 | `/spec-from-code:feedback <spec.md> + comments/screenshots` | Per-claim verdicts vs code, then Impact pass (5b step 7) |
 | `/spec-from-code:publish <spec.md>` | INTEGRATE only: `scripts/build_paste_html.py` → paste-ready HTML + instructions |
+| `/spec-from-code:revise <spec.md/.docx>` | BA restructuring pass: reshape a finished spec into the canonical §1–8 structure for customer approval — reorganize/de-duplicate only, never author, never re-verify |
 
 Invoking `spec-from-code` directly with a mode argument still works — pick the
 narrowest flow that fits. No diff/PR mode: the reviewed repo is a fixed snapshot —
@@ -185,28 +200,48 @@ For 10k–25k-line files, tell the agent to grep for anchors first, then read wi
 never read blind, and say in the summary that coverage was targeted.
 
 ### 4. RECONCILE — classify every finding
-Cross-check code against the existing spec and produce three buckets:
-- **✅ confirmed** — stated in code with `file:line`
-- **⚠️ genuinely unknown** — name *exactly what* is unknown and *who* can answer
-- **defect** — code contradicts the spec or is plainly unintended
+Cross-check code against the existing spec and produce four buckets, which map straight
+onto the markers and sections:
+- **✅ confirmed** — stated in code with `file:line` → a §5 requirement
+- **⚠️ confirmed with a caveat** — behaviour is known, but a value is config-driven or a
+  documented rule is unenforced → a §5 requirement + a Confidence note naming the caveat
+- **❓ intent unsettled** — *what* the code does is clear, *whether it should* is not →
+  a §5 requirement + a Confidence note + a §6 open question
+- **defect** — code contradicts the spec or is plainly unintended → §7
 
 Two independent sources agreeing (e.g. JSP + spec + Java on mandatory elements) is the
 highest confidence you can assign.
 
 **Open-question discipline.** Every unknown that becomes a `Q-` item carries, at
 birth, an **owner it is routed to** (dev / DBA / operations / vendor) and a
-**working default** the spec assumes until answered. All `Q-` items live in **one**
-"Open questions" table (an appendix); body text references the ID only — never
-restate the question inline (a BA review counted the same unanswered question
+**working default** the spec assumes until answered. All `Q-` items live in **one** place —
+**§6 Open Questions**, grouped A (changes what gets built) / B (blocking nothing) /
+Resolved; body text references the ID only — never restate the question inline (a BA review counted the same unanswered question
 repeated 7 times through one document). A question touching a **core rule** (a gate,
 a state transition, a purge condition) blocks publish until resolved — it cannot
 ship as a hedge inside the rule's own Requirement. An "as-is" spec carrying more
 than ~10 open questions needs a resolve round before review, not a bigger appendix.
 
-### 5. WRITE — draft the requirements
-Use `templates/requirements.md`. Requirements are `MUST` statements; each is followed
-by `WHEN`/`THEN` scenarios and a `✅`/`⚠️` marker. Keep a running defect table. This is
-where the turn ends: output the draft + a preliminary coverage/confidence read.
+### 5. WRITE — draft the spec (two files, written together)
+
+Use `templates/requirements.md` — it is already the **canonical §1–8 shape**, so a spec
+drafted here needs no later restructuring pass. Write **two files in the same turn**:
+
+| File | Template | Audience |
+|---|---|---|
+| `<feature>-spec.md` | `templates/requirements.md` | the customer — markers stay, `file:line` does not |
+| `<feature>-evidence.md` | `templates/evidence-notes.md` | the dev team — `file:line` per REQ ID, coverage gaps, ID scheme, open decisions |
+
+Requirements are `MUST` statements grouped under `### 5.x`, each with a
+`REQ-<AREA>-###` ID, a marker, and at least one `WHEN`/`THEN` scenario that also
+carries its own marker.
+
+**Write them together, not the spec first.** Evidence recovered afterwards costs a full
+re-verification pass — by then the agent that read the code path is gone, and what
+survives is a plausible-looking citation nobody re-opened. Every requirement lands in
+both files in the same motion or it is not done.
+
+This is where the turn ends: output both files + a preliminary coverage/confidence read.
 
 **Readability contract** (from a BA review of a spec that was code-accurate yet hard
 to read — accuracy does not excuse the prose):
@@ -226,10 +261,11 @@ to read — accuracy does not excuse the prose):
    gets truncated by paste round-trips and reads as a formatting bug; put the
    explanation in the paragraph around the table.
 5. **Single-source rule.** Each fact has exactly one canonical home — usually §3 Key
-   Terms or its Requirement; for pure lookup values, their appendix (see
+   Terms or its Requirement; for pure lookup values, their §8 appendix (see
    Information allocation). Every other surface cross-references it ("see §3") —
-   recipe 5b step 4 and REVIEW lens 5 enforce this. One summary-table layer per
-   document: if "At a Glance" exists, no second quick-reference table repeating it.
+   recipe 5b step 4 and REVIEW lens 5 enforce this. At most one summary-table layer
+   per document — and note that "At a Glance" is **not** a canonical section: a
+   revise pass will dissolve it, so don't grow content there in the first place.
 6. **A figure named is a figure shown.** Never ship "Diagram: X" as a text
    placeholder — the mermaid fence or embedded image travels with the caption
    (`validate.py` flags orphan captions).
@@ -268,25 +304,24 @@ exact value while implementing* (→ appendix)?
   requirement's observable contract.
 
 ### 5a. Before you number sections — is this a compound feature?
-Most features fit one shape: a short description (§1–6) then all Requirements +
-Scenarios gathered in §7, which is the last section. That shape assumes **one**
-capability.
+Most features fit the canonical shape (see the structure note under Commands):
+context in §1–4, all Requirements + Scenarios gathered under **§5**, grouped
+`### 5.x <sub-area>`, with §6–8 optional. That shape assumes **one** capability.
 
 Some features are a **cluster** — a desk module *plus* its own matching engine *plus*
-reporting (Claims was three-in-one). Do not just keep numbering §8, §9, §10… onto the
-end: that pushes Requirements *outside* §7 and silently breaks the convention every
+reporting (Claims was three-in-one). Do not just bolt extra requirement sections onto
+the end: that pushes Requirements *outside* §5 and silently breaks the convention every
 other feature follows (reviewers will notice). Decide the shape up front:
 
-- **Split** — give each sub-capability its own §1–7 spec. Cleanest when the parts are
+- **Split** — give each sub-capability its own §1–8 spec. Cleanest when the parts are
   genuinely separate features. Needs owner sign-off because it renumbers the doc.
-- **Nest** — keep one spec, but put the extra capabilities as sub-sections under one
-  umbrella heading (`8.1`, `8.2`…), and rename §7 so its scope is clear (e.g. "Core
-  requirements"). Each sub-section carries its own description + requirements together,
-  which reads better than tearing requirements away from what they describe.
-  **Heading levels when nesting:** the flat house style puts `Requirement:` at h2 and
-  `Scenario:` at h3; once you add a `7.x` grouping layer (h3), demote them **two
-  levels** (h4/h5) or the Google-Docs outline inverts — Requirements outrank their
-  own parent group. `validate.py` counts them at any level.
+- **Nest** — keep one spec and give each sub-capability its own `5.x` group (the
+  canonical grouping layer absorbs this case for free). Each group carries its own
+  description + requirements together, which reads better than tearing requirements
+  away from what they describe.
+  **Heading levels:** the canonical layout is `### 5.x` group → `#### Requirement:` →
+  `##### Scenario:` — keep that depth or the Google-Docs outline inverts and
+  Requirements outrank their own parent group. `validate.py` counts them at any level.
 
 Either is fine; picking blind is not. Confirm the shape with the section owner before
 writing, not after — reshaping a pasted Google-Docs section is expensive.
@@ -296,11 +331,12 @@ writing, not after — reshaping a pasted Google-Docs section is expensive.
 When the input is a drafted section to improve — not a feature to document from
 scratch — phases 1–5 compress into this recipe (one Claims rewrite start-to-finish):
 
-1. **Survey the structure first.** Grep the heading map. Score it against the house
-   shape (§1–7): narrative duplicated between Key Terms / At a Glance / Journeys;
-   sections numbered past §7; appendices adrift **or holding decision-bearing
-   content** (run the allocation litmus test on each one); leaked junk content.
-   List what folds where before touching prose.
+1. **Survey the structure first.** Grep the heading map. Score it against the
+   canonical structure (§1–8, `../revise/reference/spec-structure-template.md`):
+   narrative duplicated between Key Terms / Journeys; non-canonical sections
+   (Actors, At a Glance) that must be dissolved; appendices adrift **or holding
+   decision-bearing content** (run the allocation litmus test on each one); leaked
+   junk content. List what folds where before touching prose.
 2. **Reuse prior verified artifacts.** A requirements doc with `file:line`, a handover
    report, extracted CSVs — mine these before re-analysing code. Re-verify a third of
    reused evidence by spot-check.
@@ -308,14 +344,15 @@ scratch — phases 1–5 compress into this recipe (one Claims rewrite start-to-
    terminology + section map from the vendor PDF (terms only); the others verify the
    section's strong claims against code, area by area. Rewrite only after both return.
 4. **Dedup rule** (the Single-source rule applied): a fact lives in exactly one
-   place — Key Terms holds one-to-three-line definitions, Journeys hold behaviour
-   once, Requirements hold the binding form, appendices hold exact lookup values.
-   At a Glance holds only comparisons and invariants, never a third retelling.
+   place — Key Terms holds one-to-three-line definitions, the Business Journey holds
+   behaviour once, Requirements hold the binding form, §8 appendices hold exact
+   lookup values. Non-canonical summary sections (At a Glance) get dissolved, never
+   kept as a third retelling.
 5. **Meaningful names over internal codes.** Parameter codes (`5/2`, `50/3`) appear
    once, in a settings table beside their real screen labels; body text uses the name.
-6. **Appendices go to the document end,** labelled with the section number prefix
-   (`Appendix 6A…`) so sibling sections can add their own without collision; update
-   the body cross-references in the same pass. Only lookup material qualifies —
+6. **Appendices live under `## 8. Supporting materials`,** relettered A, B, C…
+   (drop vendor numbering like "6A"), source documents listed first; update the
+   body cross-references in the same pass. Only lookup material qualifies —
    apply the Information-allocation litmus test to every block already living there.
 7. **Reviewer feedback is a set of claims, not instructions.** Verify each against
    code before acting: this round one comment was right (a DPR path the spec skipped),
@@ -338,8 +375,9 @@ Q&A correction — is not done when it lands in one paragraph. Before shipping t
 change, walk the **fixed checklist of spec surfaces** and conclude explicitly for
 each: `updated` or `unaffected` (a silent skip is not a conclusion):
 
-§1 Purpose · §2 Scope · §3 Key Terms · §5 At a Glance · every figure ·
-§6 journeys · §7 requirements + defect table · appendices · `GLOSSARY.md`
+§1 Purpose · §2 Scope · §3 Key Terms · §4 Business Journey · every figure ·
+§5 requirements + scenarios · §6 open questions · §7 known issues ·
+§8 appendices · `GLOSSARY.md`
 
 This is a **semantic** review — grep for the same term is only the first step and
 never sufficient, because related content rarely repeats the wording (a figure, a
@@ -442,19 +480,30 @@ reviewed, not this folder) — `python3 "<this-skill-dir>/scripts/<name>"`.
 | Script | Does |
 |---|---|
 | `scripts/md2html.py IN.md OUT.html` | Markdown → paste-ready Google-Docs HTML (real tables). Self-reports table count and stray `\|`/`**`. |
-| `scripts/validate.py SECTION.md [TARGET.md]` | Structural checks (unbalanced tables, unclosed fences, leaked `>`, empty headings, ⚠️ on requirements, figure captions with no diagram nearby); with a target, verifies every `Locate:` anchor exists. |
+| `scripts/validate.py SPEC.md [TARGET.md]` | Structural checks (unbalanced tables, unclosed fences, leaked `>`, empty headings, orphan figure captions, normative content in a lookup appendix) **plus canonical §1–8 conformance** when the file is a full spec — markers and `REQ-<AREA>-###` IDs on every requirement, markers on every scenario, one H1, no export anchors, `5.x` grouping, no known-defects inside §5, appendices under §8, no surviving Actors/At-a-Glance. Fragments get structural checks only. With a target, verifies every `Locate:` anchor exists. |
 | `scripts/build_paste_html.py SPEC.md OUT_PREFIX [--split-at "HEADING"]` | Full publish pipeline: renders mermaid fences to PNG (needs `npx`), embeds them base64, runs md2html, optionally splits body/appendices into two paste files. |
 | `scripts/term_check.py SPEC.md GLOSSARY.md [CANONICAL.md ...]` | Flags forbidden term variants (with the canonical replacement) against the shared registry; `<!-- term-ok -->` on a line waives a deliberate mention. Non-zero exit on hits. Also lists (INFO-only) acronyms defined in no given glossary. |
 | `scripts/dup_check.py SPEC.md [--min-words 8] [--fail-at 3]` | Flags near-verbatim repeated sentences (single-source rule); fails when a sentence appears 3+ times, lists 2× repeats as INFO. |
 
-## Markers (keep consistent with the existing spec)
-`✅` = verified in code/DDL, with `file:line` — **the vendor PDF alone never earns ✅**
-(see Source hierarchy).
-`⚠️` = genuinely unconfirmed — and the note must say *what* is unknown, not just hedge.
-Never leave `⚠️` on a Requirement or Scenario heading; resolve it or move it into a note.
-Separate **fact from arithmetic from unknown** in one note when they mix: "the year
-digit is code fact ✅; the ten-year repeat is arithmetic; whether collisions occurred
-is a DBA query ⚠️" survives review — a blended claim does not.
+## Markers — three states, one on every requirement AND every scenario
+
+| Marker | Means | Carries |
+|---|---|---|
+| `✅` | Settled — behaviour verified in code/DDL, no open question affects it | `file:line` in the evidence file |
+| `⚠️` | Confirmed behaviour **with a caveat** — a config-dependent value, a documented-but-unenforced rule, an attribution point | a **Confidence note** saying exactly what the caveat is |
+| `❓` | Behaviour known but **business intent unsettled** — the answer changes what gets built | a **Confidence note** + a linked §6 open question |
+
+**The vendor PDF alone never earns ✅** (see Source hierarchy). Behaviour only the PDF
+claims does not become a requirement at all — it stays in context as a note.
+
+`⚠️` on a requirement heading is legitimate and expected: it means *we know what the
+code does, and here is the caveat*. What is never acceptable is a bare hedge — a `⚠️`
+whose note does not name the caveat is an unfinished thought, and `validate.py` warns on
+one with no `Confidence note:` beneath it. Genuinely unsettled *intent* is `❓`, not `⚠️`.
+
+Separate **fact from arithmetic from unknown** when they mix in one note: "the year
+digit is code fact; the ten-year repeat is arithmetic; whether collisions occurred is a
+DBA query ❓" survives review — a blended claim does not.
 
 ## Scope note
 Default to reading **every tier including JSP**. The truth-lives-in-code rule and the
@@ -463,6 +512,43 @@ them before starting.
 
 ## Changelog
 
+- **2.7.0** (2026-08-14) — **one command now produces a canonical spec.**
+  `templates/requirements.md` was rewritten from the old internal draft shape
+  (Sources / Business context / Data model / NFR / Divergences…) into the canonical
+  §1–8 customer-facing shape, so `new` emits a conforming document directly and
+  `revise` reverts to its real job: specs that did not come from this pipeline.
+  The four sections with no canonical home were placed: **Data model** → a detail
+  block inside the `5.x` group whose requirements it underpins (a reader needs it to
+  verify them); **NFR + data migration + modernization risks** → §8 Appendix B,
+  informative (they describe building the replacement, not current behaviour the
+  customer approves). New `templates/evidence-notes.md` companion carries `file:line`
+  per REQ ID, coverage gaps, the ID scheme and open decisions, written in the same
+  turn as the spec. **Marker semantics reconciled** with the canonical three-state
+  system — `⚠️` now means *confirmed with a caveat* (legitimate on a heading, must
+  carry a Confidence note) and `❓` means *intent unsettled*; the old rule "never
+  leave ⚠️ on a requirement heading" contradicted the canonical requirement that
+  every requirement and scenario carry a marker, and would have made `new`'s own
+  output fail `validate.py` and block `publish`. `validate.py` gained canonical
+  conformance checks (markers + REQ IDs on every requirement, markers on every
+  scenario, one H1, no export anchors, `5.x` grouping, no known-defects in §5,
+  appendices under §8, no surviving non-canonical sections), applied only to full
+  specs so fragments and change requests still pass. It also became **fence-aware** —
+  it previously read headings, anchors and tables *inside* ``` blocks as the
+  document's own structure, so a spec carrying a mermaid diagram or an illustrative
+  markdown block was reported against its own examples. RECONCILE's buckets and the
+  open-question home (§6, not an appendix) updated to match.
+- **2.6.0** (2026-08-14) — merged the BA-authored `revise` skill (built after the
+  BA reviewed the team's specs) as the sixth command: a self-contained,
+  never-author/never-re-verify restructuring pass that shapes a finished spec for
+  customer approval, with its own procedure, structure-conformance transforms,
+  grep self-check, and verification checklist. Its
+  `reference/spec-structure-template.md` becomes the plugin's **single canonical
+  spec structure (§1–8)**, replacing the old §1–7 house shape everywhere:
+  Requirements move to §5 (grouped `5.x`, `REQ-<AREA>-###` IDs, per-scenario
+  confidence markers), Business Journey to §4, "At a Glance" demoted to a
+  non-canonical section that gets dissolved, appendices wrapped under
+  §8 Supporting materials relettered A, B, C…; 5a nesting now uses `5.x` groups;
+  Impact-pass surface checklist renumbered to match.
 - **2.5.1** (2026-08-12) — reconciled the Single-source rule with the new
   allocation rule: canonical homes now explicitly include "their appendix" for
   pure lookup values (Readability contract item 5 and recipe 5b step 4, the

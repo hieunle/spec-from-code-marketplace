@@ -8,7 +8,8 @@ Google Docs takes no patch, so each edit is applied by hand.
 - **Action:** REPLACE / INSERT AFTER / INSERT NEW SUBSECTION.
 - **New text:** written in the doc's house style — paste as-is.
 Order: corrections first, then ⚠️-resolutions, then new content, then hand-offs, then group decisions.
-Marker convention: ✅ = stated in code (file:line); ⚠️ = genuinely unconfirmed.
+Marker convention: ✅ = settled, verified in code; ⚠️ = confirmed with a caveat (carries a
+Confidence note); ❓ = business intent unsettled (carries a Confidence note + a §6 question).
 
 ## Part A — Corrections (wrong or imprecise statements)
 ### A-1. <title>  [🔴 if it would misdirect a reader]
